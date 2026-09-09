@@ -8,13 +8,12 @@
 
 <!-- ===========================================================================
      PAGINA DE OFERTA DO BACKREDIRECT — Gelatin / GLAP
-     Publicar em: salud24h.online/cnn-vsl/oferta/
+     No ar em: https://susalud24h.site/oferta/
 
-     ⚠️ TEM QUE FICAR SOB A MESMA ROTA PROTEGIDA DA VSL (/cnn-vsl*).
-     O backredirect leva a querystring inteira, e e ela que carrega a senha no
-     utm_source. Publicar isto fora de /cnn-vsl* deixa uma pagina black
-     acessivel a quem chegar pela URL — inclusive a revisao da Meta clicando
-     Voltar. `noindex` acima ajuda contra buscador, nao contra revisor.
+     Recebe quem SAI DO CHECKOUT da Digistore sem comprar. Esse publico ja viu a
+     VSL, clicou em comprar e abriu o formulario — e hoje nao recebe nada se
+     desistir antes de digitar o e-mail, porque o webhook de abandono da
+     Digistore so dispara depois disso.
 
      O QUE FOI DELIBERADAMENTE *NAO* COPIADO DO SWIPE FRANCES:
       · nome de pessoa real em depoimento (la usam uma apresentadora de TV e um
@@ -165,8 +164,15 @@
     0%,100%{box-shadow:0 0 40px rgba(255,193,7,.45)}
     50%{box-shadow:0 0 80px rgba(255,193,7,.85),0 0 120px rgba(255,193,7,.25)}
   }
+  /* ⚠️ `align-items:flex-start` NAO e cosmetico.
+     Com o `center` que estava aqui, o flex centraliza a fita inteira (49 itens =
+     4.214px) dentro de um rolo de 86px: ela ja nasce 2.064px acima do topo. O
+     translateY do giro somava a esse deslocamento e parava muito depois do
+     ultimo item — os tres rolos terminavam BRANCOS, e nao havia erro nenhum no
+     console para denunciar. A fita tem que comecar colada no topo para o
+     deslocamento em itens bater com o que aparece. */
   .rolo{width:86px;height:86px;background:#fff;border-radius:12px;overflow:hidden;
-        display:flex;align-items:center;justify-content:center}
+        display:flex;align-items:flex-start;justify-content:center}
   .rolo .fita{display:flex;flex-direction:column;will-change:transform}
   .rolo .item{width:86px;height:86px;display:flex;align-items:center;justify-content:center;
               font-size:2.1rem;font-weight:900;color:#141018;flex-shrink:0}
@@ -443,7 +449,12 @@
     const FINAIS  = ['$', '1', '7'];
     const SIMBOLOS = ['$', '1', '7', '2', '0', '%', '5', '9'];
     const ALTURA  = 86;   // = .rolo .item
-    const VOLTAS  = 6;    // quantas vezes a fita passa antes de parar
+    const VOLTAS  = 14;   // quantas vezes a fita passa antes de parar
+    // Tempo do primeiro rolo e intervalo ate o proximo parar. O escalonamento e
+    // o que faz parecer maquina; se os tres param juntos, viram tres divs
+    // trocando de conteudo ao mesmo tempo.
+    const DUR_BASE = 3.2;
+    const DUR_PASSO = 0.9;   // ultimo rolo para em 3.2 + 2*0.9 = 5.0s
 
     // Monta cada fita: VOLTAS repeticoes dos simbolos + o valor final no fim.
     const fitas = [0, 1, 2].map((i) => {
@@ -466,39 +477,63 @@
       botao.disabled = true;
       botao.textContent = 'CALCULANDO...';
 
-      const total = VOLTAS * 8; // quantos itens ate o final de cada fita
+      const total = VOLTAS * SIMBOLOS.length; // itens ate o final de cada fita
       fitas.forEach((fita, i) => {
-        // Cada rolo para um pouco depois do anterior — e o escalonamento que
-        // faz a animacao parecer maquina, e nao tres divs mudando juntas.
-        const dur = 1.6 + i * 0.45;
-        fita.style.transition = `transform ${dur}s cubic-bezier(.15,.8,.3,1)`;
-        requestAnimationFrame(() => {
-          fita.style.transform = `translateY(-${total * ALTURA}px)`;
-        });
+        const dur = DUR_BASE + i * DUR_PASSO;
+        // Curva com muito tempo em velocidade alta e freada longa so no fim:
+        // e o que da a sensacao de rolo pesado girando. Uma curva simetrica
+        // (ease) desacelera cedo demais e a animacao parece um scroll.
+        fita.style.transition = `transform ${dur}s cubic-bezier(.08,.62,.14,1)`;
+        // ⚠️ NAO usar requestAnimationFrame para disparar isto.
+        // O navegador CONGELA o rAF enquanto a aba nao esta visivel — e a aba
+        // pode perfeitamente estar oculta neste instante: no navegador interno
+        // do Facebook/Instagram basta a pessoa receber uma notificacao. Com rAF,
+        // o transform nunca era aplicado: as fitas ficavam em translateY(0), os
+        // tres rolos paravam no primeiro item e a pagina anunciava "TU PRECIO:
+        // $17" com a maquina mostrando outra coisa. Nao havia erro no console.
+        // `offsetHeight` forca o reflow que registra o estado inicial da
+        // transicao, e a atribuicao seguinte anima — funcione o rAF ou nao.
+        void fita.offsetHeight;
+        fita.style.transform = `translateY(-${total * ALTURA}px)`;
         setTimeout(() => {
           fita.parentElement.classList.add('premiado');
         }, dur * 1000);
       });
 
-      const fim = (1.6 + 2 * 0.45) * 1000 + 300;
+      const fim = (DUR_BASE + 2 * DUR_PASSO) * 1000 + 400;
       setTimeout(() => {
+        // Trava os rolos no valor final antes de anunciar o preco.
+        // O navegador congela transicoes CSS enquanto a aba esta oculta, mas
+        // NAO congela setTimeout. Se a pessoa recebe uma notificacao no meio do
+        // giro — o que e comum no navegador interno do Instagram — ela volta e
+        // ve "TU PRECIO: $17" escrito embaixo de uma maquina parada no comeco.
+        // Fixar aqui garante que a mensagem e os rolos contem a mesma historia,
+        // independentemente do que a transicao conseguiu animar.
+        fitas.forEach((fita) => {
+          fita.style.transition = 'none';
+          fita.style.transform = `translateY(-${total * ALTURA}px)`;
+        });
         if (titulo) titulo.style.display = 'none';
         if (sub) sub.style.display = 'none';
         botao.style.display = 'none';
         posGiro.classList.add('mostra');
       }, fim);
 
-      // Deixa a pessoa ler a revelacao antes de trocar de tela.
+      // Deixa a pessoa LER a revelacao antes de trocar de tela. Curto demais e
+      // ela chega na oferta sem ter registrado o preco que acabou de ganhar —
+      // que e a unica razao de a animacao existir.
       setTimeout(() => {
-        tela.style.transition = 'opacity .45s ease';
+        tela.style.transition = 'opacity .5s ease';
         tela.style.opacity = '0';
-        setTimeout(() => { tela.remove(); comecarContador(); }, 450);
-      }, fim + 2200);
+        setTimeout(() => { tela.remove(); comecarContador(); }, 500);
+      }, fim + 4500);
     }
 
     botao.addEventListener('click', girar);
     // Quem nao clica nao pode ficar preso numa tela sem oferta: gira sozinho.
-    const auto = setTimeout(girar, 12000);
+    // 8s: com a animacao em ~8s e mais 3s de leitura, esperar 12s parada
+    // olhando a maquina antes de ela sequer comecar era tempo morto demais.
+    const auto = setTimeout(girar, 8000);
   })();
 })();
 </script>
