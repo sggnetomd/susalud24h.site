@@ -121,13 +121,13 @@
      A mecanica de duas telas tambem: a oferta so aparece depois da revelacao,
      e isso e um micro-compromisso — quem apertou o botao ja participou.
 
-     O QUE MUDOU, E POR QUE:
-     La os rolos param em "BINGO" e a copy diz que a pessoa GANHOU. E um sorteio
-     de resultado fixo: todo mundo ganha sempre. Quem recarrega a pagina uma vez
-     descobre, e ai perde a confianca no preco, na garantia e no resto da pagina
-     junto. Aqui a animacao continua inteira, mas o enquadramento e REVELACAO,
-     nao sorte: "vamos ver o melhor preco que conseguimos" e os rolos param em
-     $17. A tensao da animacao (nao se sabe onde para) sobrevive; a mentira, nao.
+     O CONVITE E LUDICO ("prueba tu suerte"), o RESULTADO E FIXO em $17 — decisao
+     do dono da operacao, tomada com o trade-off na mesa. O que continua fora,
+     de proposito, e a AFIRMACAO de que houve sorteio: nada aqui diz "BINGO",
+     "ganhaste" ou "premio", que e o que o swipe frances faz. Convidar a girar e
+     brincadeira que todo mundo entende; afirmar que ela teve sorte, quando o
+     resultado e sempre o mesmo, e a frase que um F5 desmente — e que levaria
+     junto a credibilidade do preco e da garantia de 90 dias.
      ========================================================================== */
   #tela-slot{
     position:fixed;inset:0;z-index:1000;
@@ -180,7 +180,10 @@
   .rolo.premiado{animation:flash .4s ease-in-out 3}
 
   @keyframes surgir{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-  .pos-giro{display:none;animation:surgir .5s ease}
+  /* O respiro entre a maquina e o anuncio do preco nao e so estetico: colados,
+     o brilho da maquina lava o texto e os dois disputam a mesma atencao no
+     instante que mais importa da pagina. */
+  .pos-giro{display:none;animation:surgir .5s ease;margin-top:52px}
   .pos-giro.mostra{display:block}
   .pos-giro .titulo{font-size:clamp(1.7rem,7vw,2.6rem);font-weight:900;color:#ffc107;
                     text-transform:uppercase;line-height:1.1;margin-bottom:8px}
@@ -208,8 +211,8 @@
 
 <!-- ══ TELA 1 — revelação do preço ══ -->
 <div id="tela-slot">
-  <h2 id="slot-titulo">Espera — antes de irte</h2>
-  <p class="sub" id="slot-sub">Vamos a ver el mejor precio que podemos hacerte hoy.</p>
+  <h2 id="slot-titulo">Espera — prueba tu suerte</h2>
+  <p class="sub" id="slot-sub">Gira y mira qué precio te toca hoy.</p>
 
   <div class="maquina">
     <div class="rolo"><div class="fita" id="fita0"></div></div>
@@ -222,7 +225,7 @@
     <p class="texto">$10 menos que el precio normal.<br>Te lo dejamos abierto por 15 minutos.</p>
   </div>
 
-  <button class="btn-girar" id="btnGirar">VER MI PRECIO</button>
+  <button class="btn-girar" id="btnGirar">PROBAR MI SUERTE</button>
 </div>
 
 <div class="barra">
@@ -475,7 +478,7 @@
       girou = true;
       clearTimeout(auto);
       botao.disabled = true;
-      botao.textContent = 'CALCULANDO...';
+      botao.textContent = 'GIRANDO...';
 
       const total = VOLTAS * SIMBOLOS.length; // itens ate o final de cada fita
       fitas.forEach((fita, i) => {
