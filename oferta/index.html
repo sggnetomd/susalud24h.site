@@ -365,19 +365,21 @@
      ~57% — a Meta recebe metade dos avisos de checkout iniciado e otimiza com
      dado pela metade. O Worker ainda resgata do Referer os UTMs que faltarem.
 
-     ⚠️ O /go vive em salud24h.online e NAO existe em susalud24h.site (testado:
-     404). Por isso a URL e absoluta e cruza de dominio. Funciona — o fbclid
-     viaja na querystring e o Worker o usa quando nao acha cookie — mas o
-     ideal e apontar a rota /go* tambem para susalud24h.site no Cloudflare e
-     trocar isto por '/go'. Aí o cookie _fbp/_fbc do proprio dominio entra no
-     evento e a correspondencia do IC melhora.
+     RELATIVO de proposito. A rota `susalud24h.site/go*` foi apontada para o
+     Worker `tracking-meta` em 09/09/2026, entao o /go responde no MESMO dominio
+     da pagina. Isso importa para o evento: `_fbp` e cookie de primeira parte e
+     nao viaja entre dominios — com a URL absoluta apontando para
+     salud24h.online, todo IT saido daqui ia sem ele. Relativo, o cookie do
+     proprio dominio entra e a correspondencia fica completa.
+     Se um dia a pagina for publicada num dominio SEM a rota /go, isto vira 404:
+     apontar a rota primeiro, sempre.
 
      ⚠️ Enquanto o botao apontar para /go, nao use no `sid1` (nem em nome de
      campanha) as palavras que a UTMify tem em lista interna — checkout, compra,
      comprar, order, pedido, pay, pagamento, cart, carrinho, confirmar, perfect,
      green, guru, vega — sob risco de rearmar a duplicacao de IC. "backredirect"
      esta fora da lista. */
-  const GO = 'https://salud24h.online/go';
+  const GO = '/go';
   const VOUCHER = 'DISCOUNT10USD';
   const MINUTOS = 15;
 
@@ -396,7 +398,10 @@
      em `sid1`, que a Digistore repassa no postback e que esta livre (0 de 258 vendas nos
      ultimos 7 dias). */
   function checkoutUrl(comDesconto) {
-    const u = new URL(GO);
+    // A base e obrigatoria: `new URL('/go')` sem ela lanca TypeError e o botao
+    // fica sem href. Com `location.href` o caminho relativo resolve no proprio
+    // dominio, que e justamente o ponto de usar relativo.
+    const u = new URL(GO, location.href);
     new URLSearchParams(location.search).forEach((v, k) => u.searchParams.append(k, v));
     u.searchParams.set('custom', 'GLAP');
     u.searchParams.set('sid1', 'backredirect');
