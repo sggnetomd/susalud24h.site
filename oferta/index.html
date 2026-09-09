@@ -515,6 +515,12 @@
         fitas.forEach((fita) => {
           fita.style.transition = 'none';
           fita.style.transform = `translateY(-${total * ALTURA}px)`;
+          // `will-change` promove a fita a camada propria de GPU. Isso e o que
+          // faz o giro ser suave — e serve so durante o giro. Mantido depois,
+          // segura memoria de video a toa e deixa camadas vivas atras de um
+          // overlay que vai sumir, que e receita de artefato de repintura
+          // (retangulo grudado por cima do conteudo ao rolar a pagina).
+          fita.style.willChange = 'auto';
         });
         if (titulo) titulo.style.display = 'none';
         if (sub) sub.style.display = 'none';
@@ -528,7 +534,25 @@
       setTimeout(() => {
         tela.style.transition = 'opacity .5s ease';
         tela.style.opacity = '0';
-        setTimeout(() => { tela.remove(); comecarContador(); }, 500);
+        setTimeout(() => {
+          // Desmonta a camada ANTES de remover o no.
+          // Um overlay `position:fixed` de tela cheia, com gradiente e opacidade
+          // animada, vira uma camada de composicao propria na GPU. Removido de
+          // uma vez, o navegador as vezes nao invalida a regiao que ele ocupava
+          // e sobra um retangulo branco por cima do conteudo — que reaparece ao
+          // rolar. Zerar o que promove a camada (fixed, opacity, contexto de
+          // empilhamento) e so entao remover forca a repintura da area inteira.
+          tela.style.transition = 'none';
+          tela.style.position = 'static';
+          tela.style.opacity = '';
+          tela.style.zIndex = 'auto';
+          tela.style.display = 'none';
+          // Leitura forcada: garante que o navegador processe o desmonte acima
+          // como um passo proprio, em vez de agrupar tudo com o remove().
+          void document.body.offsetHeight;
+          tela.remove();
+          comecarContador();
+        }, 500);
       }, fim + 4500);
     }
 
